@@ -96,16 +96,17 @@ window.addEventListener("DOMContentLoaded", () => {
 
   const modal = document.querySelector(".modal");
   const modalTrigger = document.querySelectorAll("[data-modal]");
-  const modalCloseBtn = document.querySelector("[data-close]");
 
   const openModal = () => {
-    modal.classList.toggle("show");
+    modal.classList.add("show");
+    modal.classList.remove("hide");
     document.body.classList.add("lock");
     clearInterval(modalTimerId);
   };
 
   const closeModal = () => {
-    modal.classList.toggle("show");
+    modal.classList.remove("show");
+    modal.classList.add("hide");
     document.body.classList.remove("lock");
   };
 
@@ -113,10 +114,8 @@ window.addEventListener("DOMContentLoaded", () => {
     btn.addEventListener("click", openModal);
   });
 
-  modalCloseBtn.addEventListener("click", closeModal);
-
   modal.addEventListener("click", (e) => {
-    if (e.target == modal) {
+    if (e.target == modal || e.target.getAttribute("data-close") == "") {
       closeModal();
     }
   });
@@ -127,7 +126,7 @@ window.addEventListener("DOMContentLoaded", () => {
     }
   });
 
-  // const modalTimerId = setTimeout(openModal, 5000);
+  const modalTimerId = setTimeout(openModal, 50000);
 
   function showModalByScroll() {
     if (
@@ -150,6 +149,8 @@ window.addEventListener("DOMContentLoaded", () => {
       'Меню "Фитнес"',
       'Меню "Фитнес" - это новый подход к приготовлению блюд: больше свежих овощей и фруктов. Продукт активных и здоровых людей. Этоабсолютно новый продукт с оптимальной ценой и высоким качеством!',
       2,
+      ".menu .container",
+      "menu__item",
     ],
     [
       "img/tabs/elite.jpg",
@@ -157,6 +158,8 @@ window.addEventListener("DOMContentLoaded", () => {
       "Меню “Премиум”",
       "В меню “Премиум” мы используем не только красивый дизайн упаковки,но и качественное исполнение блюд. Красная рыба, морепродукты,фрукты - ресторанное меню без похода в ресторан!",
       5,
+      ".menu .container",
+      "menu__item",
     ],
     [
       "img/tabs/post.jpg",
@@ -164,23 +167,19 @@ window.addEventListener("DOMContentLoaded", () => {
       'Меню "Постное"',
       "Меню “Постное” - это тщательный подбор ингредиентов: полное отсутствие продуктов животного происхождения, молоко из миндаля, овса, кокоса или гречки, правильное количество белков за счет тофу и импортных вегетарианских стейков",
       4,
+      ".menu .container",
+      "menu__item",
     ],
   ];
 
   class MenuCard {
-    constructor(
-      src,
-      alt,
-      title,
-      descr,
-      price,
-      parentSelector = ".menu .container"
-    ) {
+    constructor(src, alt, title, descr, price, parentSelector, ...classes) {
       this.src = src;
       this.alt = alt;
       this.title = title;
       this.descr = descr;
       this.price = price;
+      this.classes = classes;
       this.parent = document.querySelector(parentSelector);
       this.transfer = 84.5;
       this.changeToSom();
@@ -192,7 +191,7 @@ window.addEventListener("DOMContentLoaded", () => {
 
     render() {
       const element = document.createElement("div");
-      element.classList.add("menu__item");
+      this.classes.forEach((className) => element.classList.add(className));
       element.innerHTML = `
         <img src=${this.src} alt=${this.alt} />
         <h3 class="menu__item-subtitle">${this.title}</h3>
@@ -207,4 +206,82 @@ window.addEventListener("DOMContentLoaded", () => {
   }
 
   menuItems.forEach((el) => new MenuCard(...el).render());
+
+  //Forms
+
+  const forms = document.querySelectorAll("form");
+
+  const message = {
+    loading: "Загрузка",
+    success: "Спасибо! Скоро мы свами свяжемся",
+    failure: "Что-то пошло не так...",
+  };
+
+  forms.forEach((item) => {
+    postDate(item);
+  });
+
+  function postDate(form) {
+    form.addEventListener("submit", (e) => {
+      e.preventDefault();
+
+      const statusMessage = document.createElement("div");
+      statusMessage.classList.add("status");
+      statusMessage.textContent = message.loading;
+      form.append(statusMessage);
+
+      const request = new XMLHttpRequest();
+      request.open("POST", "server.php");
+
+      request.setRequestHeader("Content-type", "application/json");
+      const formData = new FormData(form);
+
+      const object = {};
+      formData.forEach((value, key) => {
+        object[key] = value;
+      });
+
+      const json = JSON.stringify(object);
+
+      request.send(json);
+
+      request.addEventListener("load", () => {
+        if (request.status === 200) {
+          console.log(request.response);
+          showThanksModal(message.success);
+          form.reset();
+          statusMessage.remove();
+        } else {
+          showThanksModal(message.failure);
+        }
+      });
+    });
+  }
+
+  function showThanksModal(msg) {
+    const prevModalDialog = document.querySelector(".modal__dialog");
+
+    prevModalDialog.classList.add("hide");
+    openModal();
+
+    const thanksModal = document.createElement("div");
+    thanksModal.classList.add("modal__dialog");
+    thanksModal.innerHTML = `
+      <div class="modal__content">
+        <div data-close class="modal__close">&times;</div>
+        <div class="modal__title">${msg}</div>
+      </div>
+    `;
+
+    console.log(thanksModal);
+
+    document.querySelector(".modal").append(thanksModal);
+
+    setTimeout(() => {
+      thanksModal.remove();
+      prevModalDialog.classList.add("show");
+      prevModalDialog.classList.remove("hide");
+      closeModal();
+    }, 4000);
+  }
 });
