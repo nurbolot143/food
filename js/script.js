@@ -142,36 +142,6 @@ window.addEventListener("DOMContentLoaded", () => {
 
   //classes for  Menu cards
 
-  const menuItems = [
-    [
-      "img/tabs/vegy.jpg",
-      "Fitnes",
-      'Меню "Фитнес"',
-      'Меню "Фитнес" - это новый подход к приготовлению блюд: больше свежих овощей и фруктов. Продукт активных и здоровых людей. Этоабсолютно новый продукт с оптимальной ценой и высоким качеством!',
-      2,
-      ".menu .container",
-      "menu__item",
-    ],
-    [
-      "img/tabs/elite.jpg",
-      "Premium",
-      "Меню “Премиум”",
-      "В меню “Премиум” мы используем не только красивый дизайн упаковки,но и качественное исполнение блюд. Красная рыба, морепродукты,фрукты - ресторанное меню без похода в ресторан!",
-      5,
-      ".menu .container",
-      "menu__item",
-    ],
-    [
-      "img/tabs/post.jpg",
-      "Simple",
-      'Меню "Постное"',
-      "Меню “Постное” - это тщательный подбор ингредиентов: полное отсутствие продуктов животного происхождения, молоко из миндаля, овса, кокоса или гречки, правильное количество белков за счет тофу и импортных вегетарианских стейков",
-      4,
-      ".menu .container",
-      "menu__item",
-    ],
-  ];
-
   class MenuCard {
     constructor(src, alt, title, descr, price, parentSelector, ...classes) {
       this.src = src;
@@ -191,7 +161,14 @@ window.addEventListener("DOMContentLoaded", () => {
 
     render() {
       const element = document.createElement("div");
-      this.classes.forEach((className) => element.classList.add(className));
+
+      if (this.classes.length == 0) {
+        this.element = "menu__item";
+        element.classList.add(this.element);
+      } else {
+        this.classes.forEach((className) => element.classList.add(className));
+      }
+
       element.innerHTML = `
         <img src=${this.src} alt=${this.alt} />
         <h3 class="menu__item-subtitle">${this.title}</h3>
@@ -205,7 +182,41 @@ window.addEventListener("DOMContentLoaded", () => {
     }
   }
 
-  menuItems.forEach((el) => new MenuCard(...el).render());
+  const getResource = async (url) => {
+    const res = await fetch(url);
+
+    if (!res.ok) {
+      throw new Error(`Could not fetch ${url}, status${res.status}`);
+    }
+
+    return await res.json();
+  };
+
+  // getResource("http://localhost:3000/menu").then((data) => {
+  //   data.forEach(({ img, altimg, title, descr, price }) => {
+  //     new MenuCard(
+  //       img,
+  //       altimg,
+  //       title,
+  //       descr,
+  //       price,
+  //       ".menu .container"
+  //     ).render();
+  //   });
+  // });
+
+  axios.get("http://localhost:3000/menu").then((data) =>
+    data.data.forEach(({ img, altimg, title, descr, price }) => {
+      new MenuCard(
+        img,
+        altimg,
+        title,
+        descr,
+        price,
+        ".menu .container"
+      ).render();
+    })
+  );
 
   //Forms
 
@@ -244,12 +255,9 @@ window.addEventListener("DOMContentLoaded", () => {
 
       const formData = new FormData(form);
 
-      const object = {};
-      formData.forEach((value, key) => {
-        object[key] = value;
-      });
+      const json = JSON.stringify(Object.fromEntries(formData.entries()));
 
-      postDate("http://localhost:3000/requests", JSON.stringify(object))
+      postDate("http://localhost:3000/requests", json)
         .then((data) => {
           console.log(data);
 
@@ -292,7 +300,124 @@ window.addEventListener("DOMContentLoaded", () => {
     }, 4000);
   }
 
-  fetch("http://localhost:3000/menu")
-    .then((data) => data.json())
-    .then((res) => console.log(res));
+  // Slider
+
+  const slides = document.querySelectorAll(".offer__slide");
+  const prev = document.querySelector(".offer__slider-prev");
+  const next = document.querySelector(".offer__slider-next");
+  const total = document.querySelector("#total");
+  const current = document.querySelector("#current");
+  const slidesWrapper = document.querySelector(".offer__slider-wrapper");
+  const slidesField = document.querySelector(".offer__slider-inner");
+  const width = window.getComputedStyle(slidesWrapper).width;
+
+  let slideIndex = 1;
+  let offset = 0;
+
+  if (slides.length < 10) {
+    total.textContent = `0${slides.length}`;
+    current.textContent = `0${slideIndex}`;
+  } else {
+    total.textContent = slides.length;
+    current.textContent = slideIndex;
+  }
+
+  slidesField.style.cssText = `
+    width: ${100 * slides.length}%;
+    display: flex;
+    transition: 0.5s all;
+  `;
+
+  slidesWrapper.style.overflow = "hidden";
+  slides.forEach((slide) => {
+    slide.style.width = width;
+  });
+
+  function deleteNotDigits(str) {
+    return +str.replace(/\D/g, "");
+  }
+
+  next.addEventListener("click", () => {
+    if (offset == deleteNotDigits(width) * (slides.length - 1)) {
+      offset = 0;
+    } else {
+      offset += deleteNotDigits(width);
+    }
+
+    slidesField.style.transform = `translateX(-${offset}px)`;
+
+    if (slideIndex > slides.length - 1) {
+      slideIndex = 1;
+    } else {
+      slideIndex++;
+    }
+
+    if (slideIndex < 10) {
+      current.textContent = `0${slideIndex}`;
+    } else {
+      current.textContent = slideIndex;
+    }
+  });
+
+  prev.addEventListener("click", () => {
+    if (offset == 0) {
+      offset = deleteNotDigits(width) * (slides.length - 1);
+    } else {
+      offset -= deleteNotDigits(width);
+    }
+
+    slidesField.style.transform = `translateX(-${offset}px)`;
+
+    if (slideIndex == 1) {
+      slideIndex = slides.length;
+    } else {
+      slideIndex--;
+    }
+
+    if (slideIndex < 10) {
+      current.textContent = `0${slideIndex}`;
+    } else {
+      current.textContent = slideIndex;
+    }
+  });
+
+  // showSlides(slideIndex);
+
+  // if (slides.length < 10) {
+  //   total.textContent = `0${slides.length}`;
+  // } else {
+  //   total.textContent = slides.length;
+  // }
+
+  // function showSlides(n) {
+  //   if (n > slides.length) {
+  //     slideIndex = 1;
+  //   }
+
+  //   if (n < 1) {
+  //     slideIndex = slides.length;
+  //   }
+
+  //   slides.forEach((item) => (item.style.display = "none"));
+
+  //   slides[slideIndex - 1].style.display = "block";
+
+  //   if (slides.length < 10) {
+  //     current.textContent = `0${slideIndex}`;
+  //   } else {
+  //     current.textContent = slideIndex;
+  //   }
+  // }
+
+  // function plusSlides(n) {
+  //   showSlides((slideIndex += n));
+  // }
+
+  // prev.addEventListener("click", () => {
+  //   plusSlides(-1);
+  // });
+
+  // next.addEventListener("click", () => {
+  //   plusSlides(1);
+  // });
 });
