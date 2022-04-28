@@ -534,4 +534,5 @@ window.addEventListener("DOMContentLoaded", () => {
   getDynamicInformation("#age");
 
   //test commit 2
+  //test commit 1
 });
