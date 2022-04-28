@@ -532,4 +532,6 @@ window.addEventListener("DOMContentLoaded", () => {
   getDynamicInformation("#height");
   getDynamicInformation("#weight");
   getDynamicInformation("#age");
+
+  //test commit 1
 });
